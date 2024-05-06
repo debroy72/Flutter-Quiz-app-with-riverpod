@@ -1,0 +1,49 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+func seedDB() {
+	// Set up MongoDB connection.
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Disconnect(context.Background())
+
+	// Ensure connection is working.
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to MongoDB")
+
+	// Access the questions collection.
+	collection := client.Database("myApp").Collection("questions")
+
+	// Optional: Clear existing questions.
+	if _, err := collection.DeleteMany(context.Background(), bson.D{}); err != nil {
+		log.Fatal("Error clearing questions collection:", err)
+	}
+
+	// Convert seedQuestions to a slice of interface{} for insertion.
+	var docs []interface{}
+	for _, q := range seedQuestions {
+		docs = append(docs, q)
+	}
+
+	// Insert seed questions into the collection.
+	if _, err := collection.InsertMany(context.Background(), docs); err != nil {
+		log.Fatal("Error seeding database:", err)
+	}
+
+	fmt.Println("Database seeded successfully!")
+}
